@@ -1,6 +1,6 @@
 const express = require('express');
 const FoodItem = require('../models/FoodItem');
-const auth = require('../middleware/auth');
+const verifyToken = require('../middleware/verifyToken'); // Import the new middleware
 
 const router = express.Router();
 
@@ -11,11 +11,10 @@ router.get('/', async (req, res) => {
 });
 
 // Add a new food item (Only seller can add)
-router.post('/', auth, async (req, res) => {
+router.post('/', verifyToken, async (req, res) => { // Use verifyToken middleware
   if (req.user.role !== 'seller') return res.status(403).json({ message: 'Access Denied' });
   const newFood = new FoodItem(req.body);
   await newFood.save();
-  res.status(201).json(newFood);
+  res.status(201).json({ message: 'Food item created successfully', foodItem: newFood });
 });
-
 module.exports = router;
