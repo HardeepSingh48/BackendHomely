@@ -35,7 +35,14 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Add Order Items
     for (const item of items) {
+
+      // console.log(`Processing item: ${JSON.stringify(item)}`); // Log the current item being processed
+      
       const food = await FoodItem.findById(item.foodItemId);
+
+      // console.log(`Food item restaurantId: ${food.restaurantId}`); // Log the restaurantId of the food item
+      // console.log(`Food item found: ${JSON.stringify(food)}`); // Log the result of the food item query
+
       if (!food || food.restaurantId.toString() !== restaurantId) {
         return res.status(400).json({ message: 'Invalid food item' });
       }
@@ -66,8 +73,18 @@ router.get('/customer', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'customer') return res.status(403).json({ message: 'Access Denied' });
 
-    const orders = await Order.find({ userId: req.user.id }).populate('restaurantId');
-    res.json(orders);
+    const orders = await Order.find({ userId: req.user.id }).select('totalPrice status paymentStatus restaurantId');
+    
+    // Format the response to include only the restaurantId as a simple field
+    const formattedOrders = orders.map(order => ({
+      _id: order._id,
+      totalPrice: order.totalPrice,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      restaurantId: order.restaurantId // This will be the ID of the restaurant
+    }));
+
+    res.json(formattedOrders);
 
   } catch (error) {
     console.error(error);
@@ -83,9 +100,42 @@ router.get('/restaurant', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'seller') return res.status(403).json({ message: 'Access Denied' });
 
-    const orders = await Order.find({ restaurantId: req.user.id }).populate('userId');
-    res.json(orders);
+    const orders = await Order.find({ restrauntId: req.user.if}).select('userId totalPrice status paymentStatus');
 
+    // Format the response to include only the userId and restaurantId as simple fields
+    const formattedOrders = orders.map(order => ({
+      _id: order._id,
+      userId: order.userId, // This will be the ID of the customer
+      totalPrice: order.totalPrice,
+      status:order.status,
+      paymentStatus: order.paymentStatus,
+      restrauntId: req.user.id // This will be the ID of the restaurant
+    }));
+    res.json(formattedOrders);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+/**
+ * 📌 Get a Specific Order by ID
+ * ✅ Only authenticated users can view their orders
+ */
+router.get('/:orderId', verifyToken, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId).populate('restaurantId', '_id'); // Only include the ID of the restaurant
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json({
+      _id: order._id,
+      totalPrice: order.totalPrice,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      restaurantId: order.restaurantId // This will be the ID of the restaurant
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });

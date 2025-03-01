@@ -9,7 +9,7 @@ const router = express.Router();
 // Register Customer
 router.post('/register/customer', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email } = req.body;
 
         // Check if email already exists
         const existingCustomer = await Customer.findOne({ email });
@@ -17,9 +17,8 @@ router.post('/register/customer', async (req, res) => {
             return res.status(400).json({ message: 'Email already registered as a customer' });
         }
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const customer = new Customer({ ...req.body, password: hashedPassword });
+        // Create a new customer (password hashing is handled in the model)
+        const customer = new Customer(req.body);
 
         await customer.save();
         res.status(201).json({ message: 'Customer created successfully' });
@@ -72,7 +71,7 @@ router.post('/login', async (req, res) => {
         const user = await Model.findOne({ email });
 
         if (!user) {
-            console.log("❌ User not found!");
+            // console.log("❌ User not found!");
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
